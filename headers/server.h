@@ -26,6 +26,7 @@ int bindSocket(int socketFD, char* port, char* ip);
 // Returns a socket file descriptor on success, -1 on error
 int acceptConnections(int socketFD);
 
+
 // Executes a command in a terminal.
 // Returns the result of the command on success, NULL on error.
 char* execShell(char* command, char* rv, long max);
