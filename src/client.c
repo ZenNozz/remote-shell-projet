@@ -2,7 +2,7 @@
 
 int connectToServer(char* port, char* ip) {
 	// Retrieve server address
-	struct addrinfo hints, *res;
+	struct addrinfo hints, *res, *attempt;
 	// Initialize all hints to 0
 	memset(&hints, 0, sizeof(struct addrinfo));
 	int rv;
@@ -27,15 +27,21 @@ int connectToServer(char* port, char* ip) {
 		return -2;
 	}
 
-	// Attempt to connect to first result
-	serverSocket = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
-	if (serverSocket == -1) {
-		return -3;
-	}
-	if (connect(serverSocket, res->ai_addr, res->ai_addrlen) == -1) {
-		return -4;
+	// Connect to the first address we can
+	for (attempt = res; res != NULL; res = res->ai_next) {
+		serverSocket = socket(attempt->ai_family, attempt->ai_socktype, attempt->ai_protocol);
+		if (serverSocket == -1) {
+			close(serverSocket);
+			continue;
+		}
+		if (connect(serverSocket, attempt->ai_addr, attempt->ai_addrlen) == -1) {
+			close(serverSocket);
+			continue;
+		}
+		freeaddrinfo(res); // attempt points to res, so both get freed
+		return serverSocket;
 	}
 
-	freeaddrinfo(res);
-	return serverSocket;
+	// Couldn't connect to any sockets
+	return -3;
 }

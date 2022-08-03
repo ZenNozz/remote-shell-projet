@@ -28,5 +28,5 @@ int acceptConnections(int socketFD);
 
 
 // Executes a command in a terminal.
-// Returns the result of the command on success, NULL on error.
-char* execShell(char* command, char* rv, long max);
+// Sets rv to the output of the command on success, NULL on error.
+void execShell(char* command, char* rv, long max);
