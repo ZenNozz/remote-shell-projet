@@ -66,3 +66,143 @@ int main(int argc, char* argv[]) {
             }
         }
     }
+
+    // Create and bind socket
+    int boundSocket = createSocket();
+    if (boundSocket == -1) {
+        if (verbose) {
+            printf("Error creating socket\n");
+        }
+        return 0;
+    } else {
+        if (verbose) {
+            printf("Socket created\n");
+        }
+    }
+    if (bindSocket(boundSocket, port, ip) == -1) {
+        if (verbose) {
+            printf("Error binding socket\n");
+        }
+        return 0;
+    } else {
+        if (verbose) {
+            printf("Socket bound\n");
+        }
+    }
+
+    if (verbose) {
+        printf("Server started with the following parameters\n");
+        if (ip[0] == 0) {
+            printf("Accepting all connections on port %s\n", port);
+        } else {
+            printf("Server started with the following parameters\n");
+        }
+        printf("Max bytes/communication: %ld\n", max);
+    }
+    
+    // Start listening for connections
+    if (listen(boundSocket, BACKLOG) == -1) {
+        if (verbose) {
+            printf("Error listening\n");
+        }
+        return 0;
+    } else {
+        if (verbose) {
+            printf("Started listening\n");
+        }
+    }
+
+
+    // Initialize variables needed for communication
+    int peerSocket;
+    int bytesReceived;
+    int bytesSent;
+    void* recvBuf = malloc(max); // Avoid compiler warning
+    void* sendBuf = malloc(max); // Avoid compiler warning
+    if (recvBuf == NULL || sendBuf == NULL) {
+        if (verbose) {
+            printf("malloc() call failed\n");
+        }
+        return 0;
+    }
+
+    // Accept loop
+    while((peerSocket = acceptConnections(boundSocket))) {
+        // Check if a client is attempting to connect,
+        // and if the attempt fails, wait one second
+        if (peerSocket == -1) {
+            if (verbose) {
+                printf("Failed to accept client's connection\n");
+            }
+            sleep(1);
+            continue;
+        }
+        if (verbose) {
+            printf("Connection accepted\n");
+        }
+
+        // Receive message from client. If the message fails to send,
+        // close the connection and wait one second
+        bytesReceived = recv(peerSocket, recvBuf, max, 0);
+
+        if (bytesReceived == -1) {
+            if (verbose) {
+                printf("Failed to receive message\n");
+            }
+            close(peerSocket);
+            sleep(1);
+            continue;
+
+        } else {
+            if (bytesReceived == 0) {
+                // If no bytes are sent, close the connection
+                if (verbose) {
+                    printf("Connection with client closed\n");
+                }
+                close(peerSocket);
+                continue;
+            } else {
+                // Execute command on local shell
+                if (verbose) {
+                    printf("%d bytes received from client\n", bytesReceived);
+                    
+                }
+                bytesReceived = 0;
+                // Get rid of trailing newlines from fgets
+                char checkexit[strlen((char*)recvBuf)];
+                strcpy(checkexit, (char*)recvBuf);
+                checkexit[strcspn(checkexit, "\r\n")] = '\0';
+
+                if (strcmp("closeShell", checkexit) == 0) {
+                    free(recvBuf);
+                    free(sendBuf);
+                    close(peerSocket);
+                    close(boundSocket);
+                    if (verbose) {
+                        printf("Server closing\n");
+                    }
+                    return 1;
+                } else {
+                    execShell((char*)recvBuf, (char*)sendBuf, max);
+                    if (sendBuf == NULL) {
+                        if (verbose) {
+                            printf("Failed to execute the command\n");
+                        }
+                        continue;
+                    }
+                    if (verbose) {
+                        printf("Command return:\n\n%s\n", (char*)sendBuf);
+                    }
+
+                    // Send execution results to client
+                    bytesSent = send(peerSocket, sendBuf, strlen(sendBuf), 0);
+                    if (verbose) {
+                        printf("%d bytes sent to client\n", bytesSent);
+                    }
+                    memset(sendBuf, 0, strlen(sendBuf));
+                    memset(recvBuf, 0, strlen(recvBuf));
+                }
+            }
+        }
+    }
+}
