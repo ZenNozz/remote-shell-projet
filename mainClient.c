@@ -20,8 +20,8 @@ int main(int argc, char* argv[]) {
                     char cpy[strlen(argv[i])]; // -p=2048
                     strcpy(cpy, argv[i]);
                     char token[5];
-                    strcpy(token, strtok(cpy, "="));
-                    strcpy(token, strtok(NULL, "="));
+                    strcpy(token, strtok(cpy, "=")); // -p
+                    strcpy(token, strtok(NULL, "=")); // 2048
                     long port_long = strtol(token, NULL, 10);
                     if (port_long < 0 || port_long > 65535 || errno != 0) {
                         printf("Parameter must be between 0 and 65535\n");
@@ -32,12 +32,12 @@ int main(int argc, char* argv[]) {
                 } else if (strcmp(arg, "-b") == 0) {
                     char cpy[strlen(argv[i])];
                     strcpy(cpy, argv[i]); 
-                    char token[4];
+                    char token[5];
                     strcpy(token, strtok(cpy, "="));
                     strcpy(token, strtok(NULL, "="));
                     long bytes_long = strtol(token, NULL, 10);
-                    if (bytes_long < 1 || bytes_long > 2048 || errno != 0) {
-                        printf("Parameter must be between 1 and 2048\n");
+                    if (bytes_long < 1 || bytes_long > 10240 || errno != 0) {
+                        printf("Parameter must be between 1 and 10240\n");
                         return 0;
                     } else {
                         max = bytes_long;
@@ -115,14 +115,6 @@ int main(int argc, char* argv[]) {
             }
             sleep(1);
             continue;
-
-        } else if (serverSocketFD == -4) {
-            if (verbose) {
-                printf("Failed to connect to the server\n");
-            }
-            sleep(1);
-            continue;
-
         } else {
             printf("Successfully connected to server\n");
         }
@@ -137,44 +129,47 @@ int main(int argc, char* argv[]) {
             printf("Sending command\n");
         }
         bytesSent = send(serverSocketFD, sendBuf, strlen(sendBuf), 0);
-        if (verbose) {
             if (bytesSent == -1) {
-                printf("Failed to send\n");
+                if (verbose) {
+                    printf("Failed to send\n");
+                }
                 close(serverSocketFD);
                 continue;
             } else {
-                printf("%d bytes sent\n", bytesSent);
+                if (verbose) {
+                    printf("%d bytes sent\n", bytesSent);
+                }
                 bytesSent = 0;
             }
-        }
-
         // Receive execution result from remote shell
         bytesReceived = recv(serverSocketFD, recvBuf, max, 0);
-        if (verbose) {
             if (bytesReceived == -1) {
-                printf("Failed to receive\n");
+                if (verbose) {
+                    printf("Failed to receive\n");
+                }
                 close(serverSocketFD);
                 continue;
             } else {
-                printf("%d bytes received\n", bytesReceived);
+                if (verbose) {
+                    printf("%d bytes received\n", bytesReceived);
+                }
             }
-        }
 
         // Get rid of trailing new lines from fgets
-        //char checkexit[strlen((char*)sendBuf)];
-        //strcpy(checkexit, (char*)sendBuf);
-        //checkexit[strcspn(checkexit, "\r\n")] = '\0';
+        char checkexit[strlen((char*)sendBuf)];
+        strcpy(checkexit, (char*)sendBuf);
+        checkexit[strcspn(checkexit, "\r\n")] = '\0'; 
 
-        //if (strcmp(checkexit, "closeShell") == 0) {
-        //    if (verbose) {
-        //        printf("Server closed\n");
-        //    }
+        if (strcmp(checkexit, "closeShell") == 0) {
+            if (verbose) {
+                printf("Server closed\n");
+            }
             // Exit shell 
-        //    free(recvBuf);
-        //    free(sendBuf);
-        //    close(serverSocketFD);
-        //    return 1;
-        //}
+            free(recvBuf);
+            free(sendBuf);
+            close(serverSocketFD);
+            return 1;
+        }
 
         // Print execution to local shell
         printf("\n%s\n", (char*)recvBuf);

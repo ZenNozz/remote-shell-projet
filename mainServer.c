@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
         if (ip[0] == 0) {
             printf("Accepting all connections on port %s\n", port);
         } else {
-            printf("Server started with the following parameters\n");
+           printf("Accepting all connections on IP %s:%s\n", ip, port);
         }
         printf("Max bytes/communication: %ld\n", max);
     }
