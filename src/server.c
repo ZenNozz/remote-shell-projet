@@ -39,7 +39,10 @@ int bindSocket(int socketFD, char* port, char* ip) {
 }
 
 int acceptConnections(int socketFD) {
-    struct sockaddr_in* peer = malloc(sizeof(struct sockaddr_in*)); // verifier malloc != null
+    struct sockaddr_in* peer = malloc(sizeof(struct sockaddr_in*)); 
+    if (peer != NULL ) {
+        return 0;
+        }
     socklen_t peer_addr_size = sizeof(peer);
     int connectedSocketFD = accept(socketFD, (struct sockaddr*)peer, &peer_addr_size);
     free(peer);
