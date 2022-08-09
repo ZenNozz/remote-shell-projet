@@ -53,7 +53,6 @@ int main(int argc, char* argv[]) {
                         printf("Invalid IP address\n");
                         return 0;
                     }
-                    // TODO: check for reserved IP addresses
                     strcpy(ip, token);
                 } else {
                     printf("Command line arguments are\n");
